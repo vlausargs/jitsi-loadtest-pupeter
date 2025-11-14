@@ -1,0 +1,15 @@
+{
+  "name": "jitsi-loadtest-pupeter",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "puppeteer": "^24.30.0",
+    "puppeteer-cluster": "^0.25.0"
+  }
+}
