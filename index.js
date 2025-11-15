@@ -16,6 +16,7 @@ const VIDEO_ENABLE = process.env.VIDEO_ENABLE || false;
 const VIDEO_PATH_Y4M = process.env.VIDEO_PATH_Y4M || 'output.y4m';
 
 const AUDIO_ENABLE = process.env.AUDIO_ENABLE || false;
+const AUDIO_PATH = process.env.AUDIO_PATH || 'test_audio.wav';
 
 
 const RETRY_LIMIT = parseInt(process.env.RETRY_LIMIT || '2', 10);
