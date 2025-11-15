@@ -11,7 +11,7 @@ const NAME_PREFIX = process.env.NAME_PREFIX || 'loadtest-';
 
 const TOTAL_USERS = parseInt(process.env.TOTAL_USERS || '5', 10);
 const CONCURRENCY = parseInt(process.env.CONCURRENCY || '5', 10);
-const STAY_SECONDS = parseInt(process.env.STAY_SECONDS || '60', 10);
+const STAY_SECONDS = parseInt(process.env.STAY_SECONDS || '120', 10);
 const VIDEO_ENABLE = process.env.VIDEO_ENABLE || false;
 const VIDEO_PATH_Y4M = process.env.VIDEO_PATH_Y4M || 'output.y4m';
 
@@ -24,7 +24,7 @@ const NAV_TIMEOUT_MS = parseInt(process.env.NAV_TIMEOUT_MS || '60000', 10);
 const SEL_TIMEOUT_MS = parseInt(process.env.SEL_TIMEOUT_MS || '30000', 10);
 
 // delay antar cluster (30 detik)
-const CLUSTER_RESTART_DELAY_MS = parseInt(process.env.CLUSTER_RESTART_DELAY_MS || '1000', 10);
+const CLUSTER_RESTART_DELAY_MS = parseInt(process.env.CLUSTER_RESTART_DELAY_MS || '5000', 10);
 
 const sessionID = crypto.randomUUID().split("-").pop();
 
