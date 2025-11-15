@@ -24,6 +24,7 @@ const PER_TASK_TIMEOUT_MS = (STAY_SECONDS + 140) * 1000; // a bit over stay time
 const NAV_TIMEOUT_MS = parseInt(process.env.NAV_TIMEOUT_MS || '60000', 10);
 const SEL_TIMEOUT_MS = parseInt(process.env.SEL_TIMEOUT_MS || '30000', 10);
 
+const sessionID = crypto.randomUUID().split("-").pop();
 function resolveChromiumExecutable() {
     if (process.env.PUPPETEER_EXECUTABLE_PATH) {
         return process.env.PUPPETEER_EXECUTABLE_PATH;
@@ -144,7 +145,7 @@ const PUPPETEER_ARGS = [
 
     console.log(`Queuing ${TOTAL_USERS} users with concurrency ${CONCURRENCY}...`);
     for (let i = 0; i < TOTAL_USERS; i++) {
-        const name = `${crypto.randomUUID().split("-").pop()}_${NAME_PREFIX}${i.toString().padStart(4, '0')}`;
+        const name = `${sessionID}_${NAME_PREFIX}_${crypto.randomUUID().split("-").pop()}_${i.toString().padStart(4, '0')}`;
         const joinUrl = `${JOIN_URL}#userInfo.displayName=%22${name}%22&config.prejoinConfig.enabled=false&config.notifications=[]`;
         cluster.queue({ idx: i, name, joinUrl });
     }
