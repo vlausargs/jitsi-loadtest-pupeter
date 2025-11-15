@@ -23,7 +23,10 @@ const PER_TASK_TIMEOUT_MS = (STAY_SECONDS + 140) * 1000; // a bit over stay time
 const NAV_TIMEOUT_MS = parseInt(process.env.NAV_TIMEOUT_MS || '60000', 10);
 const SEL_TIMEOUT_MS = parseInt(process.env.SEL_TIMEOUT_MS || '30000', 10);
 
-// delay antar cluster (30 detik)
+// batas waktu maksimal satu sesi main()
+const MAIN_HARD_LIMIT_MS = (STAY_SECONDS + 30) * 1000;
+
+// delay antar cluster (default 5 detik)
 const CLUSTER_RESTART_DELAY_MS = parseInt(process.env.CLUSTER_RESTART_DELAY_MS || '5000', 10);
 
 const sessionID = crypto.randomUUID().split("-").pop();
@@ -94,21 +97,46 @@ const main = async () => {
         }
     });
 
-    // Graceful shutdown khusus session ini
-    const shutdown = async () => {
-        try {
-            console.log('Shutting down cluster...');
-            await cluster.idle();   // tunggu semua task selesai
-            await cluster.close();  // close semua browser
-            console.log('Cluster shut down.');
-        } catch (err) {
-            console.error('Error during cluster shutdown:', err.message || err);
+    // ---- Graceful + forced shutdown (idempotent) ----
+    let shuttingDown = false;
+    let hardTimeout;
+
+    const shutdown = async (reason = 'normal') => {
+        if (shuttingDown) return;
+        shuttingDown = true;
+
+        if (hardTimeout) {
+            clearTimeout(hardTimeout);
+            hardTimeout = null;
         }
+
+        console.log(`Shutting down cluster... (reason: ${reason})`);
+        try {
+            await cluster.idle();   // tunggu semua task selesai
+        } catch (err) {
+            console.error('Error during cluster.idle():', err.message || err);
+        }
+
+        try {
+            await cluster.close();  // close semua browser
+        } catch (err) {
+            console.error('Error during cluster.close():', err.message || err);
+        }
+
+        console.log('Cluster shut down.');
     };
+
+    // hard timeout untuk seluruh main() / sesi cluster ini
+    hardTimeout = setTimeout(() => {
+        console.error(`main() exceeded hard limit ${MAIN_HARD_LIMIT_MS} ms, forcing shutdown...`);
+        shutdown('hard-timeout').catch(err => {
+            console.error('Error in hard-timeout shutdown:', err.message || err);
+        });
+    }, MAIN_HARD_LIMIT_MS);
 
     // signal handler (optional, kalau kamu stop pakai Ctrl+C)
     const onSigint = async () => {
-        await shutdown();
+        await shutdown('signal');
         process.exit(0);
     };
     process.once('SIGINT', onSigint);
@@ -155,7 +183,7 @@ const main = async () => {
     }
 
     // tunggu semua task selesai, lalu matikan cluster
-    await shutdown();
+    await shutdown('normal-exit');
 
     // lepas signal handler untuk sesi berikutnya
     process.removeListener('SIGINT', onSigint);
@@ -164,7 +192,7 @@ const main = async () => {
     console.log('=== Cluster session complete ===');
 };
 
-// loop: hidupkan cluster, matikan, tunggu 30s, ulang lagi
+// loop: hidupkan cluster, matikan, tunggu delay, ulang lagi
 (async () => {
     while (true) {
         try {
