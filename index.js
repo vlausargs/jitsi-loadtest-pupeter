@@ -7,6 +7,7 @@ const fs = require('fs');
 const JOIN_URL = process.env.JOIN_URL || "https://meet.datanusantara.com/testingloadtest001";
 const HEADLESS = (process.env.HEADLESS || 'true').toLowerCase() !== 'false'; // default true
 
+const SERVER_NAME = process.env.NAME_PREFIX || '';
 const NAME_PREFIX = process.env.NAME_PREFIX || 'loadtest-';
 
 const TOTAL_USERS = parseInt(process.env.TOTAL_USERS || '5', 10);
@@ -145,7 +146,7 @@ const PUPPETEER_ARGS = [
 
     console.log(`Queuing ${TOTAL_USERS} users with concurrency ${CONCURRENCY}...`);
     for (let i = 0; i < TOTAL_USERS; i++) {
-        const name = `${sessionID}_${NAME_PREFIX}_${crypto.randomUUID().split("-").pop()}_${i.toString().padStart(4, '0')}`;
+        const name = `${SERVER_NAME}_${sessionID}_${NAME_PREFIX}_${i.toString().padStart(4, '0')}`;
         const joinUrl = `${JOIN_URL}#userInfo.displayName=%22${name}%22&config.prejoinConfig.enabled=false&config.notifications=[]`;
         cluster.queue({ idx: i, name, joinUrl });
     }
