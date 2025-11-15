@@ -4,7 +4,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 
 
-const JOIN_URL = process.env.JOIN_URL || "https://meet.jit.si/testi1923c";
+const JOIN_URL = process.env.JOIN_URL || "https://meet.datanusantara.com/testingloadtest001";
 const HEADLESS = (process.env.HEADLESS || 'true').toLowerCase() !== 'false'; // default true
 
 const NAME_PREFIX = process.env.NAME_PREFIX || 'loadtest-';
