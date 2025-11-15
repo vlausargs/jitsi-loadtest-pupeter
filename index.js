@@ -86,7 +86,7 @@ const PUPPETEER_ARGS = [
         retryLimit: RETRY_LIMIT,
         retryDelay: 2000,
         timeout: PER_TASK_TIMEOUT_MS,
-        monitor: false,
+        monitor: true,
         puppeteerOptions: {
             headless: HEADLESS ? 'new' : false,
             executablePath: EXECUTABLE_PATH, // now using Chromium
