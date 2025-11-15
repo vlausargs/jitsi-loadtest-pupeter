@@ -19,7 +19,7 @@ const AUDIO_ENABLE = process.env.AUDIO_ENABLE || false;
 const AUDIO_PATH = process.env.AUDIO_PATH || 'test_audio.wav';
 
 const RETRY_LIMIT = parseInt(process.env.RETRY_LIMIT || '2', 10);
-const PER_TASK_TIMEOUT_MS = (STAY_SECONDS + 30) * 1000; // a bit over stay time
+const PER_TASK_TIMEOUT_MS = (STAY_SECONDS + 140) * 1000; // a bit over stay time
 const NAV_TIMEOUT_MS = parseInt(process.env.NAV_TIMEOUT_MS || '60000', 10);
 const SEL_TIMEOUT_MS = parseInt(process.env.SEL_TIMEOUT_MS || '30000', 10);
 
@@ -101,7 +101,7 @@ const main = async () => {
     let shuttingDown = false;
     let hardTimeout;
 
-    const shutdown = async (reason = 'normal') => {
+    const shutdown = async (reason = 'normal', { force = false } = {}) => {
         if (shuttingDown) return;
         shuttingDown = true;
 
@@ -110,15 +110,22 @@ const main = async () => {
             hardTimeout = null;
         }
 
-        console.log(`Shutting down cluster... (reason: ${reason})`);
-        try {
-            await cluster.idle();   // tunggu semua task selesai
-        } catch (err) {
-            console.error('Error during cluster.idle():', err.message || err);
+        console.log(`Shutting down cluster... (reason: ${reason}, force=${force})`);
+
+        if (!force) {
+            // mode normal: tunggu semua task selesai
+            try {
+                await cluster.idle();
+            } catch (err) {
+                console.error('Error during cluster.idle():', err.message || err);
+            }
+        } else {
+            // mode paksa: jangan tunggu idle, langsung close
+            console.warn('Force shutdown: skipping cluster.idle()');
         }
 
         try {
-            await cluster.close();  // close semua browser
+            await cluster.close();  // close semua browser + worker
         } catch (err) {
             console.error('Error during cluster.close():', err.message || err);
         }
@@ -129,14 +136,14 @@ const main = async () => {
     // hard timeout untuk seluruh main() / sesi cluster ini
     hardTimeout = setTimeout(() => {
         console.error(`main() exceeded hard limit ${MAIN_HARD_LIMIT_MS} ms, forcing shutdown...`);
-        shutdown('hard-timeout').catch(err => {
+        shutdown('hard-timeout', { force: true }).catch(err => {
             console.error('Error in hard-timeout shutdown:', err.message || err);
         });
     }, MAIN_HARD_LIMIT_MS);
 
     // signal handler (optional, kalau kamu stop pakai Ctrl+C)
     const onSigint = async () => {
-        await shutdown('signal');
+        await shutdown('signal', { force: true }); // kalau Ctrl+C, juga paksa tutup cepat
         process.exit(0);
     };
     process.once('SIGINT', onSigint);
@@ -182,8 +189,8 @@ const main = async () => {
         cluster.queue({ idx: i, name, joinUrl });
     }
 
-    // tunggu semua task selesai, lalu matikan cluster
-    await shutdown('normal-exit');
+    // tunggu semua task selesai, lalu matikan cluster (mode normal)
+    await shutdown('normal-exit', { force: false });
 
     // lepas signal handler untuk sesi berikutnya
     process.removeListener('SIGINT', onSigint);
