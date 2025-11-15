@@ -80,6 +80,7 @@ const PUPPETEER_ARGS = [
 
 const main = async () => {
     console.log('=== Starting new cluster session ===');
+    console.log(`STAY_SECONDS=${STAY_SECONDS}, MAIN_HARD_LIMIT_MS=${MAIN_HARD_LIMIT_MS}`);
 
     const cluster = await Cluster.launch({
         puppeteer,
@@ -97,58 +98,7 @@ const main = async () => {
         }
     });
 
-    // ---- Graceful + forced shutdown (idempotent) ----
-    let shuttingDown = false;
-    let hardTimeout;
-
-    const shutdown = async (reason = 'normal', { force = false } = {}) => {
-        if (shuttingDown) return;
-        shuttingDown = true;
-
-        if (hardTimeout) {
-            clearTimeout(hardTimeout);
-            hardTimeout = null;
-        }
-
-        console.log(`Shutting down cluster... (reason: ${reason}, force=${force})`);
-
-        if (!force) {
-            // mode normal: tunggu semua task selesai
-            try {
-                await cluster.idle();
-            } catch (err) {
-                console.error('Error during cluster.idle():', err.message || err);
-            }
-        } else {
-            // mode paksa: jangan tunggu idle, langsung close
-            console.warn('Force shutdown: skipping cluster.idle()');
-        }
-
-        try {
-            await cluster.close();  // close semua browser + worker
-        } catch (err) {
-            console.error('Error during cluster.close():', err.message || err);
-        }
-
-        console.log('Cluster shut down.');
-    };
-
-    // hard timeout untuk seluruh main() / sesi cluster ini
-    hardTimeout = setTimeout(() => {
-        console.error(`main() exceeded hard limit ${MAIN_HARD_LIMIT_MS} ms, forcing shutdown...`);
-        shutdown('hard-timeout', { force: true }).catch(err => {
-            console.error('Error in hard-timeout shutdown:', err.message || err);
-        });
-    }, MAIN_HARD_LIMIT_MS);
-
-    // signal handler (optional, kalau kamu stop pakai Ctrl+C)
-    const onSigint = async () => {
-        await shutdown('signal', { force: true }); // kalau Ctrl+C, juga paksa tutup cepat
-        process.exit(0);
-    };
-    process.once('SIGINT', onSigint);
-    process.once('SIGTERM', onSigint);
-
+    // definisikan task
     await cluster.task(async ({ page, data: { idx, name, joinUrl } }) => {
         page.setDefaultTimeout(SEL_TIMEOUT_MS);
         page.setDefaultNavigationTimeout(NAV_TIMEOUT_MS);
@@ -189,14 +139,38 @@ const main = async () => {
         cluster.queue({ idx: i, name, joinUrl });
     }
 
-    // tunggu semua task selesai, lalu matikan cluster (mode normal)
-    await shutdown('normal-exit', { force: false });
+    // Promise normal: tunggu semua task selesai, lalu close cluster
+    const runPromise = (async () => {
+        try {
+            console.log('Waiting for cluster to become idle...');
+            await cluster.idle();
+        } catch (err) {
+            console.error('cluster.idle() error:', err.message || err);
+        }
+        try {
+            await cluster.close();
+        } catch (err) {
+            console.error('cluster.close() error (runPromise):', err.message || err);
+        }
+        console.log('Cluster closed (normal path).');
+    })();
 
-    // lepas signal handler untuk sesi berikutnya
-    process.removeListener('SIGINT', onSigint);
-    process.removeListener('SIGTERM', onSigint);
+    // Promise timeout: kalau lewat MAIN_HARD_LIMIT_MS, paksa close cluster
+    const timeoutPromise = (async () => {
+        await sleep(MAIN_HARD_LIMIT_MS);
+        console.error(`HARD TIMEOUT hit: ${MAIN_HARD_LIMIT_MS} ms. Forcing cluster.close()...`);
+        try {
+            await cluster.close();
+        } catch (err) {
+            console.error('cluster.close() error (timeoutPromise):', err.message || err);
+        }
+        console.log('Cluster closed (hard-timeout path).');
+    })();
 
-    console.log('=== Cluster session complete ===');
+    // siapa yang selesai duluan, itu yang menentukan akhir main()
+    await Promise.race([runPromise, timeoutPromise]);
+
+    console.log('=== Cluster session complete (main() finished) ===');
 };
 
 // loop: hidupkan cluster, matikan, tunggu delay, ulang lagi
