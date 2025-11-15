@@ -19,7 +19,7 @@ const AUDIO_ENABLE = process.env.AUDIO_ENABLE || false;
 const AUDIO_PATH = process.env.AUDIO_PATH || 'test_audio.wav';
 
 const RETRY_LIMIT = parseInt(process.env.RETRY_LIMIT || '2', 10);
-const PER_TASK_TIMEOUT_MS = (STAY_SECONDS + 140) * 1000; // a bit over stay time
+const PER_TASK_TIMEOUT_MS = (STAY_SECONDS + 30) * 1000; // a bit over stay time
 const NAV_TIMEOUT_MS = parseInt(process.env.NAV_TIMEOUT_MS || '60000', 10);
 const SEL_TIMEOUT_MS = parseInt(process.env.SEL_TIMEOUT_MS || '30000', 10);
 
