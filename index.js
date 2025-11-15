@@ -3,7 +3,7 @@ const puppeteer = require('puppeteer');
 const crypto = require('crypto');
 const fs = require('fs');
 
-const JOIN_URL = process.env.JOIN_URL || "https://meet.datanusantara.com/testingloadtest001";
+const JOIN_URL = process.env.JOIN_URL || "https://meet.datanusantara.com/testingloadtest002";
 const HEADLESS = (process.env.HEADLESS || 'true').toLowerCase() !== 'false'; // default true
 
 const JITSI_TEST_SERVER_NAME = process.env.JITSI_TEST_SERVER_NAME || '';
