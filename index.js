@@ -31,6 +31,8 @@ const CLUSTER_RESTART_DELAY_MS = parseInt(process.env.CLUSTER_RESTART_DELAY_MS |
 
 const sessionID = crypto.randomUUID().split("-").pop();
 
+
+
 function resolveChromiumExecutable() {
     if (process.env.PUPPETEER_EXECUTABLE_PATH) {
         return process.env.PUPPETEER_EXECUTABLE_PATH;
@@ -176,6 +178,8 @@ const main = async () => {
 // loop: hidupkan cluster, matikan, tunggu delay, ulang lagi
 (async () => {
     while (true) {
+        console.log("AUDIO_ENABLE ", AUDIO_ENABLE)
+        console.log("VIDEO_ENABLE ", VIDEO_ENABLE)
         try {
             await main();
         } catch (err) {

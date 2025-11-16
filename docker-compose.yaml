@@ -1,0 +1,65 @@
+x-variables:
+  common_extra_hosts: &common_extra_hosts
+    stdin_open: true
+    extra_hosts:
+      - "meet.datanusantara.com:192.168.172.17"
+    build:
+      context: .
+      dockerfile: Dockerfile
+    network_mode: "host"
+    image: ghcr.io/puppeteer/puppeteer:16.1.0-local
+    command: ["node", "index.js"]
+    entrypoint: ["/home/cachak/app/docker-entrypoint.sh"]
+    volumes:
+      - ./:/home/cachak/app
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 4G
+networks:
+  default:
+    external: true
+    name: myindo-net
+services:
+  loadtest01:
+    <<: *common_extra_hosts
+    hostname: loadtest01
+    container_name: loadtest01
+    environment:
+      - TOTAL_USERS=10
+      - CONCURRENCY=10
+      - VIDEO_ENABLE=true
+      - AUDIO_ENABLE=true
+      - JOIN_URL=https://meet.datanusantara.com/testingloadtest002
+      - STAY_SECONDS=300
+  # loadtest02:
+  #   <<: *common_extra_hosts
+  #   hostname: loadtest02
+  #   container_name: loadtest02
+  #   environment:
+  #     - TOTAL_USERS=10
+  #     - CONCURRENCY=10
+  #     - VIDEO_ENABLE=true
+  #     - AUDIO_ENABLE=true
+  #     - JOIN_URL=https://meet.datanusantara.com/testingloadtest002
+  # loadtest03:
+  #   <<: *common_extra_hosts
+  #   hostname: loadtest03
+  #   container_name: loadtest03
+  #   environment:
+  #     - TOTAL_USERS=10
+  #     - CONCURRENCY=10
+  #     - VIDEO_ENABLE=true
+  #     - AUDIO_ENABLE=true
+  #     - JOIN_URL=https://meet.datanusantara.com/testingloadtest002
+  # loadtest04:
+  #   <<: *common_extra_hosts
+  #   hostname: loadtest04
+  #   container_name: loadtest04
+  #   environment:
+  #     - TOTAL_USERS=10
+  #     - CONCURRENCY=10
+  #     - VIDEO_ENABLE=true
+  #     - AUDIO_ENABLE=true
+  #     - JOIN_URL=https://meet.datanusantara.com/testingloadtest002
