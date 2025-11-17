@@ -22,7 +22,7 @@ x-variables:
     deploy:
       resources:
         limits:
-          cpus: "10"
+          cpus: "8"
           memory: 16G
 networks:
   default:
