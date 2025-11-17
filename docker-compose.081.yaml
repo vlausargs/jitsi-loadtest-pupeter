@@ -35,3 +35,5 @@ services:
     container_name: loadtest081
     env_file:
       - .env
+    environment:
+      - SESSION_ID=ldt081
