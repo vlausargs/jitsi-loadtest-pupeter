@@ -13,7 +13,7 @@ const TOTAL_USERS = parseInt(process.env.TOTAL_USERS || '5', 10);
 const CONCURRENCY = parseInt(process.env.CONCURRENCY || '5', 10);
 const STAY_SECONDS = parseInt(process.env.STAY_SECONDS || '120', 10);
 const VIDEO_ENABLE = process.env.VIDEO_ENABLE || false;
-const VIDEO_PATH_Y4M = process.env.VIDEO_PATH_Y4M || 'output.y4m';
+const VIDEO_PATH_Y4M = process.env.VIDEO_PATH_Y4M || 'test_video.y4m';
 
 const AUDIO_ENABLE = process.env.AUDIO_ENABLE || false;
 const AUDIO_PATH = process.env.AUDIO_PATH || 'test_audio.wav';
