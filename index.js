@@ -91,7 +91,7 @@ const main = async () => {
         retryLimit: RETRY_LIMIT,
         retryDelay: 2000,
         timeout: PER_TASK_TIMEOUT_MS,
-        monitor: true,
+        monitor: false,
         puppeteerOptions: {
             headless: HEADLESS ? 'new' : false,
             executablePath: EXECUTABLE_PATH, // now using Chromium
