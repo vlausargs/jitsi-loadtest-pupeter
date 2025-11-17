@@ -22,8 +22,8 @@ x-variables:
     deploy:
       resources:
         limits:
-          cpus: "8"
-          memory: 16G
+          cpus: "16"
+          memory: 32G
 networks:
   default:
     external: true
