@@ -113,11 +113,11 @@ const main = async () => {
             // tipe: log / warn / error / debug / info
             const type = msg.type();
             const text = msg.text();
-            // console.log(`[BROWSER CONSOLE][${type}] ${text}`);
+            console.log(`[BROWSER CONSOLE][${type}] ${text}`);
 
             // Kalau mau hanya error:
             if (type === 'error') {
-                console.error('[DETECTED CONSOLE ERROR]:', text);
+                // console.error('[DETECTED CONSOLE ERROR]:', text);
             }
         });
 
