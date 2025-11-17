@@ -105,6 +105,22 @@ const main = async () => {
         page.setDefaultTimeout(SEL_TIMEOUT_MS);
         page.setDefaultNavigationTimeout(NAV_TIMEOUT_MS);
 
+        page.on('pageerror', err => {
+            console.error('[PAGEERROR]:', err.message || err);
+        });
+
+        page.on('console', msg => {
+            // tipe: log / warn / error / debug / info
+            const type = msg.type();
+            const text = msg.text();
+            console.log(`[BROWSER CONSOLE][${type}] ${text}`);
+
+            // Kalau mau hanya error:
+            if (type === 'error') {
+                console.error('[DETECTED CONSOLE ERROR]:', text);
+            }
+        });
+
         await page.emulateMediaFeatures([
             { name: 'prefers-reduced-motion', value: 'reduce' }
         ]).catch(() => { });
