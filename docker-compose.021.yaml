@@ -1,0 +1,37 @@
+x-variables:
+  common_extra_hosts: &common_extra_hosts
+    stdin_open: true
+    extra_hosts:
+      - "meet.datanusantara.com:192.168.172.17"
+    build:
+      context: .
+      dockerfile: Dockerfile.testing
+    network_mode: "host"
+    image: ghcr.io/puppeteer/puppeteer:16.1.0-local
+    command: ["node", "index.js"]
+    entrypoint: ["/home/cachak/app/docker-entrypoint.sh"]
+    volumes:
+      - ./:/home/cachak/app
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+      nproc:
+        soft: 10240
+        hard: 20480
+    deploy:
+      resources:
+        limits:
+          cpus: "8"
+          memory: 16G
+networks:
+  default:
+    external: true
+    name: myindo-net
+services:
+  loadtest021:
+    <<: *common_extra_hosts
+    hostname: loadtest021
+    container_name: loadtest021
+    env_file:
+      - .env
