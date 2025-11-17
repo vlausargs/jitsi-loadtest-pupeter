@@ -19,11 +19,11 @@ x-variables:
       nproc:
         soft: 10240
         hard: 20480
-    deploy:
-      resources:
-        limits:
-          cpus: "8"
-          memory: 16G
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: "8"
+    #       memory: 16G
 networks:
   default:
     external: true
