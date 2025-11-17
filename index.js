@@ -29,7 +29,7 @@ const MAIN_HARD_LIMIT_MS = (STAY_SECONDS + 30) * 1000;
 // delay antar cluster (default 5 detik)
 const CLUSTER_RESTART_DELAY_MS = parseInt(process.env.CLUSTER_RESTART_DELAY_MS || '5000', 10);
 
-const sessionID = crypto.randomUUID().split("-").pop();
+const sessionID = process.env.SESSION_ID || crypto.randomUUID().split("-").pop();
 
 
 
