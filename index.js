@@ -2,8 +2,10 @@ const { Cluster } = require('puppeteer-cluster');
 const puppeteer = require('puppeteer');
 const crypto = require('crypto');
 const fs = require('fs');
+const jwt = require("jsonwebtoken");
 
-const JOIN_URL = process.env.JOIN_URL || "https://meet.datanusantara.com/testingloadtest002";
+const ROOM_CODE = process.env.ROOM_CODE || "testingloadtest002"
+const JOIN_URL = process.env.JOIN_URL || "https://meet.datanusantara.com";
 const HEADLESS = (process.env.HEADLESS || 'true').toLowerCase() !== 'false'; // default true
 
 const JITSI_TEST_SERVER_NAME = process.env.JITSI_TEST_SERVER_NAME || '';
@@ -31,7 +33,47 @@ const CLUSTER_RESTART_DELAY_MS = parseInt(process.env.CLUSTER_RESTART_DELAY_MS |
 
 const sessionID = process.env.SESSION_ID || crypto.randomUUID().split("-").pop();
 
+function generateJWT(
+    roomCode,
+    username,
+) {
+    const appSecret = process.env.APP_SECRET;
+    const appId = process.env.APP_ID;
+    const jitsiSub = process.env.JITSI_SUB;
+    const now = Math.floor(Date.now() / 1000);
+    const tokenUuid = crypto.randomUUID()
 
+    // Build user object with fallback to room settings if user settings are not provided
+    const userContext = {
+        id: tokenUuid,
+        user: {
+            id: tokenUuid,
+            username: username,
+            name: username,
+            affiliation: "member",
+            lobby_bypass: true
+        },
+        room: {
+            lobby_autostart: true,
+        },
+        features: {
+            recording: "true",
+            livestreaming: "true",
+            "screen-sharing": "true"
+        },
+    };
+
+    const payload = {
+        aud: "jitsi",
+        iss: appId,
+        sub: jitsiSub,
+        room: roomCode,
+        exp: now + 3600,
+        context: userContext,
+    };
+
+    return jwt.sign(payload, appSecret);
+}
 
 function resolveChromiumExecutable() {
     if (process.env.PUPPETEER_EXECUTABLE_PATH) {
@@ -153,7 +195,9 @@ const main = async () => {
     console.log(`Queuing ${TOTAL_USERS} users with concurrency ${CONCURRENCY}...`);
     for (let i = 0; i < TOTAL_USERS; i++) {
         const name = `${JITSI_TEST_SERVER_NAME}_${sessionID}_${NAME_PREFIX}_${i.toString().padStart(4, '0')}`;
-        const joinUrl = `${JOIN_URL}#userInfo.displayName=%22${name}%22&config.prejoinConfig.enabled=false&config.notifications=[]`;
+        const token = generateJWT(ROOM_CODE, name)
+        const joinUrl = `${JOIN_URL}/${ROOM_CODE}?jwt=${token}#userInfo.displayName=${name}&config.prejoinConfig.enabled=false&config.notifications=[]`;
+        console.log(joinUrl)
         cluster.queue({ idx: i, name, joinUrl });
     }
 
