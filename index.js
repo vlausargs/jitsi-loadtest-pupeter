@@ -3,6 +3,7 @@ const puppeteer = require('puppeteer');
 const crypto = require('crypto');
 const fs = require('fs');
 const jwt = require("jsonwebtoken");
+require("dotenv").config();
 
 const ROOM_CODE = process.env.ROOM_CODE || "testingloadtest002"
 const JOIN_URL = process.env.JOIN_URL || "https://meet.datanusantara.com";
