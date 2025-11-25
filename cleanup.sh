@@ -5,8 +5,8 @@
 #   sleep 0.5
 #   screen -S "$id" -X quit
 # done
-pkill -TERM chrome || true
+/usr/bin/pkill -TERM chrome || true
 
-pkill -9 -f 'node .*index\.js'
+/usr/bin/pkill -9 -f 'node .*index\.js'
 
 exit 0
