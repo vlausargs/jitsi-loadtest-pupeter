@@ -1,2 +1,2 @@
 #!/bin/bash
-npx @puppeteer/browsers install chrome@stable
+npx -y @puppeteer/browsers install chrome@stable
