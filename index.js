@@ -10,7 +10,7 @@ const JOIN_URL = process.env.JOIN_URL || "https://meet.datanusantara.com";
 const HEADLESS = (process.env.HEADLESS || 'true').toLowerCase() !== 'false'; // default true
 
 const JITSI_TEST_SERVER_NAME = process.env.JITSI_TEST_SERVER_NAME || '';
-const NAME_PREFIX = process.env.NAME_PREFIX || 'loadtest-';
+const NAME_PREFIX = process.env.NAME_PREFIX || 'loadtest';
 
 const TOTAL_USERS = parseInt(process.env.TOTAL_USERS || '5', 10);
 const CONCURRENCY = parseInt(process.env.CONCURRENCY || '5', 10);
@@ -195,11 +195,22 @@ const main = async () => {
 
     console.log(`Queuing ${TOTAL_USERS} users with concurrency ${CONCURRENCY}...`);
     for (let i = 0; i < TOTAL_USERS; i++) {
-        const name = `${JITSI_TEST_SERVER_NAME}_${sessionID}_${NAME_PREFIX}_${i.toString().padStart(4, '0')}`;
+        const name = `${JITSI_TEST_SERVER_NAME}${sessionID}${NAME_PREFIX}${i.toString().padStart(4, '0')}`;
         const token = generateJWT(ROOM_CODE, name)
-        const joinUrl = `${JOIN_URL}/${ROOM_CODE}?jwt=${token}#userInfo.displayName=${name}&config.prejoinConfig.enabled=false&config.notifications=[]`;
-        console.log(joinUrl)
-        cluster.queue({ idx: i, name, joinUrl });
+        const newURL = new URL(`${JOIN_URL}/${ROOM_CODE}`);
+        newURL.searchParams.append("jwt", token);
+
+        // Add the fragment (hash) part
+        // Properly encode the hash/fragment parameters
+        const hashParams = new URLSearchParams();
+        hashParams.set("userInfo.displayName", JSON.stringify(name));
+        hashParams.set("config.prejoinConfig.enabled", JSON.stringify(false));  // false
+        hashParams.set("config.notifications", JSON.stringify([]));  // []
+
+        newURL.hash = hashParams.toString();
+
+        console.log(newURL.toString())
+        cluster.queue({ idx: i, name, joinUrl: newURL.toString() });
     }
 
     // Promise normal: tunggu semua task selesai, lalu close cluster
