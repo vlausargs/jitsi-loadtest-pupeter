@@ -195,7 +195,7 @@ const main = async () => {
 
     console.log(`Queuing ${TOTAL_USERS} users with concurrency ${CONCURRENCY}...`);
     for (let i = 0; i < TOTAL_USERS; i++) {
-        const name = `${JITSI_TEST_SERVER_NAME}${sessionID}${NAME_PREFIX}${i.toString().padStart(4, '0')}`;
+        const name = `${JITSI_TEST_SERVER_NAME}_${sessionID}_${NAME_PREFIX}_${i.toString().padStart(4, '0')}`;
         const token = generateJWT(ROOM_CODE, name)
         const newURL = new URL(`${JOIN_URL}/${ROOM_CODE}`);
         newURL.searchParams.append("jwt", token);
