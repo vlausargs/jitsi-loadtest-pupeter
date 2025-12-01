@@ -207,9 +207,13 @@ const main = async () => {
             try {
                 await retry(async () => {
                     let clicked = true;
-                    c
-                    await page.waitForSelector('[aria-label="Start camera"]', { timeout: 5000 }).catch(() => { console.log("not found"); clicked = false });
+
+                    await page.waitForSelector('[aria-label="Start camera"]', { timeout: 5000 }).catch(() => { clicked = false });
                     await page.click('[aria-label="Start camera"]').catch(() => { clicked = false });
+                    if (!clicked) {
+                        await page.waitForSelector('[aria-label="Hidupkan camera"]', { timeout: 5000 }).catch(() => { clicked = false });
+                        await page.click('[aria-label="Hidupkan camera"]').catch(() => { clicked = false });
+                    }
                     if (!clicked) throw new Error("Camera button not found or not clickable");
                     await sleep(3000);
                     console.log("CAMERA SHOULD BE ON")
