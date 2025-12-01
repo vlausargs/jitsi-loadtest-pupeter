@@ -205,7 +205,7 @@ const main = async () => {
 
         if (VIDEO_ENABLE) {
             try {
-                await retry(async () => {
+                setInterval(async () => {
                     let clicked = true;
 
                     await page.waitForSelector('[aria-label="Start camera"]', { timeout: 5000 }).catch(() => { clicked = false });
@@ -214,10 +214,8 @@ const main = async () => {
                         await page.waitForSelector('[aria-label="Hidupkan camera"]', { timeout: 5000 }).catch(() => { clicked = false });
                         await page.click('[aria-label="Hidupkan camera"]').catch(() => { clicked = false });
                     }
-                    if (!clicked) throw new Error("Camera button not found or not clickable");
-                    await sleep(3000);
-                    console.log("CAMERA SHOULD BE ON")
-                }, 3, 10000, 300000);
+                }, 5000);
+
             } catch (error) {
 
             }
