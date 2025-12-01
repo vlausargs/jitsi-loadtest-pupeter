@@ -208,8 +208,6 @@ const main = async () => {
 
         if (VIDEO_ENABLE) {
             try {
-
-
                 let intervalId = setInterval(async () => {
                     let clicked = true;
 
