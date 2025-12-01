@@ -211,6 +211,7 @@ const main = async () => {
                     await page.click('[aria-label="Start camera"]').catch(() => { clicked = false });
                     if (!clicked) throw new Error("Camera button not found or not clickable");
                     await sleep(3000);
+                    console.log("CAMERA SHOULD BE ON")
                 }, 3, 10000, 300000);
             } catch (error) {
 
