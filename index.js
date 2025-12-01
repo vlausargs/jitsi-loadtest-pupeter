@@ -206,8 +206,8 @@ const main = async () => {
         hashParams.set("userInfo.displayName", JSON.stringify(name));
         hashParams.set("config.prejoinConfig.enabled", JSON.stringify(false));  // false
         hashParams.set("config.notifications", JSON.stringify([]));  // []
-        hashParams.set("config.startWithAudioMuted", JSON.stringify(AUDIO_ENABLE));  // false
-        hashParams.set("config.startWithVideoMuted", JSON.stringify(VIDEO_ENABLE));  // false
+        hashParams.set("config.startWithAudioMuted", JSON.stringify(!AUDIO_ENABLE));  // false
+        hashParams.set("config.startWithVideoMuted", JSON.stringify(!VIDEO_ENABLE));  // false
 
         newURL.hash = hashParams.toString();
 
