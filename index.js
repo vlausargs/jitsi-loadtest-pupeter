@@ -208,7 +208,9 @@ const main = async () => {
 
         if (VIDEO_ENABLE) {
             try {
-                setInterval(async () => {
+
+
+                let intervalId = setInterval(async () => {
                     let clicked = true;
 
                     await page.waitForSelector('[aria-label="Start camera"]', { timeout: 5000 }).catch(() => { clicked = false });
@@ -217,7 +219,13 @@ const main = async () => {
                         await page.waitForSelector('[aria-label="Hidupkan camera"]', { timeout: 5000 }).catch(() => { clicked = false });
                         await page.click('[aria-label="Hidupkan camera"]').catch(() => { clicked = false });
                     }
+
                 }, 5000);
+
+                setTimeout(() => {
+                    clearInterval(intervalId);
+                    console.log("3 minutes timeout reached — stopped camera button clicking");
+                }, 180000);
 
             } catch (error) {
 
