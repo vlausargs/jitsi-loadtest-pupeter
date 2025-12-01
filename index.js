@@ -214,7 +214,7 @@ const main = async () => {
         console.log(newURL.toString())
         cluster.queue({ idx: i, name, joinUrl: newURL.toString() });
         if (i < TOTAL_USERS - 1) {
-            await sleep(5000);
+            await sleep(3000);
         }
     }
 
