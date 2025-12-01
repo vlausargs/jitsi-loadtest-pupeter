@@ -4,6 +4,9 @@ const crypto = require('crypto');
 const fs = require('fs');
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
+const os = require('os');
+
+const hostname = os.hostname();
 
 const ROOM_CODE = process.env.ROOM_CODE || "testingloadtest002"
 const JOIN_URL = process.env.JOIN_URL || "https://meet.datanusantara.com";
@@ -232,7 +235,7 @@ const main = async () => {
 
     console.log(`Queuing ${TOTAL_USERS} users with concurrency ${CONCURRENCY}...`);
     for (let i = 0; i < TOTAL_USERS; i++) {
-        const name = `${JITSI_TEST_SERVER_NAME}_${sessionID}_${NAME_PREFIX}_${i.toString().padStart(4, '0')}`;
+        const name = `${hostname}_${sessionID}_${NAME_PREFIX}_${i.toString().padStart(4, '0')}`;
         const token = generateJWT(ROOM_CODE, name)
         const newURL = new URL(`${JOIN_URL}/${ROOM_CODE}`);
         newURL.searchParams.append("jwt", token);
