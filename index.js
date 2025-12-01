@@ -95,7 +95,31 @@ function resolveChromiumExecutable() {
 function sleep(ms) {
     return new Promise(r => setTimeout(r, ms));
 }
+async function retry(fn, retries = 3, delayMs = 5000, timeoutMs = null) {
+    let lastError;
+    const startTime = Date.now();
 
+    for (let i = 0; i <= retries; i++) {
+        try {
+            return await fn();
+        } catch (err) {
+            lastError = err;
+
+            const elapsed = Date.now() - startTime;
+            if (timeoutMs && elapsed >= timeoutMs) {
+                console.warn(`[RETRY] Total timeout reached (${timeoutMs}ms), giving up.`);
+                break;
+            }
+
+            if (i < retries) {
+                const waitTime = delayMs;
+                console.log(`[RETRY ${i + 1}/${retries}] Video enable failed, retrying in ${waitTime / 1000}s...`);
+                await sleep(waitTime);
+            }
+        }
+    }
+    throw lastError; // re-throw last error if all failed
+}
 const EXECUTABLE_PATH = resolveChromiumExecutable();
 console.log('Using Chromium executable:', EXECUTABLE_PATH || '(Puppeteer default)');
 
@@ -179,15 +203,24 @@ const main = async () => {
 
         await page.goto(joinUrl, { waitUntil: 'domcontentloaded' });
 
-        // if (VIDEO_ENABLE) {
-        //     await page.waitForSelector('[aria-label="Start camera"]', { timeout: 5000 }).catch(() => { });
-        //     await page.click('[aria-label="Start camera"]').catch(() => { });
-        // }
+        if (VIDEO_ENABLE) {
+            try {
+                await retry(async () => {
+                    let clicked = true;
+                    await page.waitForSelector('[aria-label="Start camera"]', { timeout: 5000 }).catch(() => { clicked = false });
+                    await page.click('[aria-label="Start camera"]').catch(() => { clicked = false });
+                    if (!clicked) throw new Error("Camera button not found or not clickable");
+                    await sleep(3000);
+                }, 3, 10000, 300000);
+            } catch (error) {
 
-        // if (AUDIO_ENABLE) {
-        //     await page.waitForSelector('[aria-label="Unmute microphone"]', { timeout: 5000 }).catch(() => { });
-        //     await page.click('[aria-label="Unmute microphone"]').catch(() => { });
-        // }
+            }
+        }
+
+        if (AUDIO_ENABLE) {
+            await page.waitForSelector('[aria-label="Unmute microphone"]', { timeout: 5000 }).catch(() => { });
+            await page.click('[aria-label="Unmute microphone"]').catch(() => { });
+        }
 
         // stay in room
         await sleep(STAY_SECONDS * 1000);
@@ -206,8 +239,8 @@ const main = async () => {
         hashParams.set("userInfo.displayName", JSON.stringify(name));
         hashParams.set("config.prejoinConfig.enabled", JSON.stringify(false));  // false
         hashParams.set("config.notifications", JSON.stringify([]));  // []
-        hashParams.set("config.startWithAudioMuted", JSON.stringify(!AUDIO_ENABLE));  // false
-        hashParams.set("config.startWithVideoMuted", JSON.stringify(!VIDEO_ENABLE));  // false
+        // hashParams.set("config.startWithAudioMuted", JSON.stringify(!AUDIO_ENABLE));  // false
+        // hashParams.set("config.startWithVideoMuted", JSON.stringify(!VIDEO_ENABLE));  // false
 
         newURL.hash = hashParams.toString();
 
