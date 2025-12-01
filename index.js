@@ -179,15 +179,15 @@ const main = async () => {
 
         await page.goto(joinUrl, { waitUntil: 'domcontentloaded' });
 
-        // if (VIDEO_ENABLE) {
-        //     await page.waitForSelector('[aria-label="Start camera"]', { timeout: 5000 }).catch(() => { });
-        //     await page.click('[aria-label="Start camera"]').catch(() => { });
-        // }
+        if (VIDEO_ENABLE) {
+            await page.waitForSelector('[aria-label="Start camera"]', { timeout: 5000 }).catch(() => { });
+            await page.click('[aria-label="Start camera"]').catch(() => { });
+        }
 
-        // if (AUDIO_ENABLE) {
-        //     await page.waitForSelector('[aria-label="Unmute microphone"]', { timeout: 5000 }).catch(() => { });
-        //     await page.click('[aria-label="Unmute microphone"]').catch(() => { });
-        // }
+        if (AUDIO_ENABLE) {
+            await page.waitForSelector('[aria-label="Unmute microphone"]', { timeout: 5000 }).catch(() => { });
+            await page.click('[aria-label="Unmute microphone"]').catch(() => { });
+        }
 
         // stay in room
         await sleep(STAY_SECONDS * 1000);
@@ -206,8 +206,8 @@ const main = async () => {
         hashParams.set("userInfo.displayName", JSON.stringify(name));
         hashParams.set("config.prejoinConfig.enabled", JSON.stringify(false));  // false
         hashParams.set("config.notifications", JSON.stringify([]));  // []
-        hashParams.set("config.startWithAudioMuted", JSON.stringify(!AUDIO_ENABLE));  // false
-        hashParams.set("config.startWithVideoMuted", JSON.stringify(!VIDEO_ENABLE));  // false
+        // hashParams.set("config.startWithAudioMuted", JSON.stringify(!AUDIO_ENABLE));  // false
+        // hashParams.set("config.startWithVideoMuted", JSON.stringify(!VIDEO_ENABLE));  // false
 
         newURL.hash = hashParams.toString();
 
