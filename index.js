@@ -222,8 +222,8 @@ const main = async () => {
 
                 setTimeout(() => {
                     clearInterval(intervalId);
-                    console.log("3 minutes timeout reached — stopped camera button clicking");
-                }, 180000);
+                    console.log("2 minutes timeout reached — stopped camera button clicking");
+                }, 120000);
 
             } catch (error) {
 
