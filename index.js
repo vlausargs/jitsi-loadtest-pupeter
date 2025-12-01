@@ -179,15 +179,15 @@ const main = async () => {
 
         await page.goto(joinUrl, { waitUntil: 'domcontentloaded' });
 
-        if (VIDEO_ENABLE) {
-            await page.waitForSelector('[aria-label="Start camera"]', { timeout: 5000 }).catch(() => { });
-            await page.click('[aria-label="Start camera"]').catch(() => { });
-        }
+        // if (VIDEO_ENABLE) {
+        //     await page.waitForSelector('[aria-label="Start camera"]', { timeout: 5000 }).catch(() => { });
+        //     await page.click('[aria-label="Start camera"]').catch(() => { });
+        // }
 
-        if (AUDIO_ENABLE) {
-            await page.waitForSelector('[aria-label="Unmute microphone"]', { timeout: 5000 }).catch(() => { });
-            await page.click('[aria-label="Unmute microphone"]').catch(() => { });
-        }
+        // if (AUDIO_ENABLE) {
+        //     await page.waitForSelector('[aria-label="Unmute microphone"]', { timeout: 5000 }).catch(() => { });
+        //     await page.click('[aria-label="Unmute microphone"]').catch(() => { });
+        // }
 
         // stay in room
         await sleep(STAY_SECONDS * 1000);
