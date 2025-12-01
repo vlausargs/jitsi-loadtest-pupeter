@@ -204,47 +204,50 @@ const main = async () => {
         // Properly encode the hash/fragment parameters
         const hashParams = new URLSearchParams();
         hashParams.set("userInfo.displayName", JSON.stringify(name));
-        hashParams.set("config.prejoinConfig.enabled", JSON.stringify(false));  // false
+        hashParams.set("config.prejoinConfig.enabled", JSON.stringify(AUDIO_ENABLE == true));  // false
         hashParams.set("config.notifications", JSON.stringify([]));  // []
+        hashParams.set("config.startWithAudioMuted", JSON.stringify(false));  // false
 
-        newURL.hash = hashParams.toString();
+         = false &
+        config.startWithVideoMuted=false
+    newURL.hash = hashParams.toString();
 
-        console.log(newURL.toString())
-        cluster.queue({ idx: i, name, joinUrl: newURL.toString() });
+    console.log(newURL.toString())
+    cluster.queue({ idx: i, name, joinUrl: newURL.toString() });
+}
+
+// Promise normal: tunggu semua task selesai, lalu close cluster
+const runPromise = (async () => {
+    try {
+        console.log('Waiting for cluster to become idle...');
+        await cluster.idle();
+    } catch (err) {
+        console.error('cluster.idle() error:', err.message || err);
     }
+    try {
+        await cluster.close();
+    } catch (err) {
+        console.error('cluster.close() error (runPromise):', err.message || err);
+    }
+    console.log('Cluster closed (normal path).');
+})();
 
-    // Promise normal: tunggu semua task selesai, lalu close cluster
-    const runPromise = (async () => {
-        try {
-            console.log('Waiting for cluster to become idle...');
-            await cluster.idle();
-        } catch (err) {
-            console.error('cluster.idle() error:', err.message || err);
-        }
-        try {
-            await cluster.close();
-        } catch (err) {
-            console.error('cluster.close() error (runPromise):', err.message || err);
-        }
-        console.log('Cluster closed (normal path).');
-    })();
+// Promise timeout: kalau lewat MAIN_HARD_LIMIT_MS, paksa close cluster
+const timeoutPromise = (async () => {
+    await sleep(MAIN_HARD_LIMIT_MS);
+    console.error(`HARD TIMEOUT hit: ${MAIN_HARD_LIMIT_MS} ms. Forcing cluster.close()...`);
+    try {
+        await cluster.close();
+    } catch (err) {
+        console.error('cluster.close() error (timeoutPromise):', err.message || err);
+    }
+    console.log('Cluster closed (hard-timeout path).');
+})();
 
-    // Promise timeout: kalau lewat MAIN_HARD_LIMIT_MS, paksa close cluster
-    const timeoutPromise = (async () => {
-        await sleep(MAIN_HARD_LIMIT_MS);
-        console.error(`HARD TIMEOUT hit: ${MAIN_HARD_LIMIT_MS} ms. Forcing cluster.close()...`);
-        try {
-            await cluster.close();
-        } catch (err) {
-            console.error('cluster.close() error (timeoutPromise):', err.message || err);
-        }
-        console.log('Cluster closed (hard-timeout path).');
-    })();
+// siapa yang selesai duluan, itu yang menentukan akhir main()
+await Promise.race([runPromise, timeoutPromise]);
 
-    // siapa yang selesai duluan, itu yang menentukan akhir main()
-    await Promise.race([runPromise, timeoutPromise]);
-
-    console.log('=== Cluster session complete (main() finished) ===');
+console.log('=== Cluster session complete (main() finished) ===');
 };
 
 // loop: hidupkan cluster, matikan, tunggu delay, ulang lagi
