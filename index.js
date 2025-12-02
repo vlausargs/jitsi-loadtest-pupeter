@@ -220,10 +220,11 @@ const main = async () => {
                     await page.waitForSelector('[aria-label="Start camera"]', { timeout: 5000 }).catch(() => { clicked = false });
                     await page.click('[aria-label="Start camera"]').catch(() => { clicked = false });
                     if (!clicked) {
-                        await page.waitForSelector('[aria-label="Hidupkan camera"]', { timeout: 5000 }).catch(() => { clicked = false });
-                        await page.click('[aria-label="Hidupkan camera"]').catch(() => { clicked = false });
+                        await page.waitForSelector('[aria-label="Hidupkan kamera"]', { timeout: 5000 }).catch(() => { clicked = false });
+                        await page.click('[aria-label="Hidupkan kamera"]').catch(() => { clicked = false });
                     }
-
+                    if (clicked)
+                        clearInterval(intervalId);
                 }, 5000);
 
                 setTimeout(() => {
