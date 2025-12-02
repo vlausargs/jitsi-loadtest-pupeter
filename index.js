@@ -143,6 +143,12 @@ const PUPPETEER_ARGS = [
     VIDEO_ENABLE ? `--use-file-for-fake-video-capture=${VIDEO_PATH_Y4M}` : null,
     AUDIO_ENABLE ? `--use-file-for-fake-audio-capture=${AUDIO_PATH}` : null,
 
+    '--webrtc-video-max-bitrate=10000000',
+    '--webrtc-video-min-bitrate=3000000',
+    '--webrtc-video-initial-bitrate=5000000',
+    '--webrtc-max-cpu-consumption-percentage=100',
+    '--force-webrtc-ip-handling-policy=default_public_interface_only',
+
     '--autoplay-policy=no-user-gesture-required',
     '--mute-audio',
     '--lang=en-US',
