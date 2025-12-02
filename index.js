@@ -237,8 +237,22 @@ const main = async () => {
         }
 
         if (AUDIO_ENABLE) {
-            await page.waitForSelector('[aria-label="Unmute microphone"]', { timeout: 5000 }).catch(() => { });
-            await page.click('[aria-label="Unmute microphone"]').catch(() => { });
+
+            let intervalIDMic = setInterval(async () => {
+                let clicked = true;
+
+                await page.waitForSelector('[aria-label="Unmute microphone"]', { timeout: 5000 }).catch(() => { clicked = false });
+                await page.click('[aria-label="Unmute microphone"]').catch(() => { clicked = false });
+                if (!clicked) {
+                    await page.waitForSelector('[aria-label="Bisukan mikrofon"]', { timeout: 5000 }).catch(() => { clicked = false });
+                    await page.click('[aria-label="Bisukan mikrofon"]').catch(() => { clicked = false });
+                }
+            }, 5000);
+
+            setTimeout(() => {
+                clearInterval(intervalIDMic);
+                console.log("2 minutes timeout reached — stopped mic button clicking");
+            }, 120000);
         }
 
         // stay in room
