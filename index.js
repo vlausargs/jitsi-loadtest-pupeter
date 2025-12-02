@@ -183,7 +183,7 @@ const PUPPETEER_ARGS = [
     '--disable-translate',
     '--disable-web-security',            // optional, tapi hemat memory
     '--no-zygote',                       // wajib untuk >500 tab
-    '--single-process',                  // DRASTIS hemat memory (tapi hanya di headless!)
+    // '--single-process',                  // DRASTIS hemat memory (tapi hanya di headless!)
     '--no-first-run',
     '--no-default-browser-check',
     '--disable-gpu',
@@ -222,7 +222,7 @@ const main = async () => {
         retryLimit: RETRY_LIMIT,
         retryDelay: 2000,
         timeout: PER_TASK_TIMEOUT_MS,
-        monitor: true,
+        monitor: false,
         puppeteerOptions: {
             headless: HEADLESS ? 'new' : false,
             executablePath: EXECUTABLE_PATH, // now using Chromium
