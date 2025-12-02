@@ -126,34 +126,89 @@ async function retry(fn, retries = 3, delayMs = 5000, timeoutMs = null) {
 const EXECUTABLE_PATH = resolveChromiumExecutable();
 console.log('Using Chromium executable:', EXECUTABLE_PATH || '(Puppeteer default)');
 
+// const PUPPETEER_ARGS = [
+//     '--no-sandbox',
+//     '--disable-setuid-sandbox',
+//     '--disable-dev-shm-usage',
+//     '--disable-extensions',
+//     '--disable-gpu',
+//     '--no-zygote',
+//     '--disable-background-timer-throttling',
+//     '--disable-renderer-backgrounding',
+//     '--disable-backgrounding-occluded-windows',
+
+//     // media simulation
+//     '--use-fake-ui-for-media-stream',
+//     '--use-fake-device-for-media-stream',
+//     VIDEO_ENABLE ? `--use-file-for-fake-video-capture=${VIDEO_PATH_Y4M}` : null,
+//     AUDIO_ENABLE ? `--use-file-for-fake-audio-capture=${AUDIO_PATH}` : null,
+
+//     '--webrtc-video-max-bitrate=10000000',
+//     '--webrtc-video-min-bitrate=3000000',
+//     '--webrtc-video-initial-bitrate=5000000',
+//     '--webrtc-max-cpu-consumption-percentage=100',
+//     '--force-webrtc-ip-handling-policy=default_public_interface_only',
+
+//     '--autoplay-policy=no-user-gesture-required',
+//     '--mute-audio',
+//     '--lang=en-US',
+//     '--window-size=640,480',
+//     '--js-flags=--max-old-space-size=128'
+// ].filter(Boolean);
+
+
 const PUPPETEER_ARGS = [
     '--no-sandbox',
     '--disable-setuid-sandbox',
-    '--disable-dev-shm-usage',
     '--disable-extensions',
-    '--disable-gpu',
-    '--no-zygote',
     '--disable-background-timer-throttling',
     '--disable-renderer-backgrounding',
     '--disable-backgrounding-occluded-windows',
-
-    // media simulation
+    '--disable-dev-shm-usage',           // wajib
+    '--disable-component-extensions-with-background-pages',
+    '--disable-background-apps',
+    '--disable-ipc-flooding-protection',
+    '--disable-hang-monitor',
+    '--disable-client-side-phishing-detection',
+    '--disable-component-update',
+    '--disable-domain-reliability',
+    '--disable-features=AudioServiceOutOfProcess,TranslateUI,BlinkGenesis,AudioWorklet',
+    '--disable-ipc-flooding-protection',
+    '--disable-notifications',
+    '--disable-offer-store',             // penting untuk WebRTC
+    '--disable-pepper-3d',
+    '--disable-renderer-priority-hint',
+    '--disable-speech-api',
+    '--disable-sync',
+    '--disable-translate',
+    '--disable-web-security',            // optional, tapi hemat memory
+    '--no-zygote',                       // wajib untuk >500 tab
+    '--single-process',                  // DRASTIS hemat memory (tapi hanya di headless!)
+    '--no-first-run',
+    '--no-default-browser-check',
+    '--disable-gpu',
+    '--disable-software-rasterizer',
+    '--disable-webgl',
+    '--disable-canvas-aa',
+    '--disable-2d-canvas-clip-aa',
+    '--disable-gl-drawing-for-tests',
+    '--disable-dev-shm-usage',           // ulang lagi biar pasti
+    '--disable-features=VizDisplayCompositor',
+    '--enable-features=WebRTCPipeWireCapturer', // kalau pakai Linux modern
     '--use-fake-ui-for-media-stream',
     '--use-fake-device-for-media-stream',
-    VIDEO_ENABLE ? `--use-file-for-fake-video-capture=${VIDEO_PATH_Y4M}` : null,
-    AUDIO_ENABLE ? `--use-file-for-fake-audio-capture=${AUDIO_PATH}` : null,
-
+    '--auto-select-desktop-capture-source="Entire screen"', // biar ga muncul dialog
+    '--mute-audio',
+    '--window-size=640,480',             // lebih kecil = lebih hemat
+    '--disable-infobars',
     '--webrtc-video-max-bitrate=10000000',
     '--webrtc-video-min-bitrate=3000000',
     '--webrtc-video-initial-bitrate=5000000',
     '--webrtc-max-cpu-consumption-percentage=100',
     '--force-webrtc-ip-handling-policy=default_public_interface_only',
-
-    '--autoplay-policy=no-user-gesture-required',
-    '--mute-audio',
-    '--lang=en-US',
-    '--window-size=800,600',
-    '--js-flags=--max-old-space-size=128'
+    '--js-flags=--max-old-space-size=64 --jitless', // batasi V8 memory ke 64MB per tab!
+    VIDEO_ENABLE ? `--use-file-for-fake-video-capture=${VIDEO_PATH_Y4M}` : null,
+    AUDIO_ENABLE ? `--use-file-for-fake-audio-capture=${AUDIO_PATH}` : null,
 ].filter(Boolean);
 
 const main = async () => {
@@ -258,7 +313,20 @@ const main = async () => {
         hashParams.set("userInfo.displayName", JSON.stringify(name));
         hashParams.set("config.prejoinConfig.enabled", JSON.stringify(false));  // false
         hashParams.set("config.notifications", JSON.stringify([]));  // []
-        hashParams.set("config.channelLastN", JSON.stringify(0))
+        hashParams.set("config.disableShortcuts", JSON.stringify(true));
+        hashParams.set("config.disablePolls", JSON.stringify(true));
+        hashParams.set("config.disableFilmstrip", JSON.stringify(true));
+        hashParams.set("config.disableBeforeUnloadHandlers", JSON.stringify(true));
+        hashParams.set("config.disableTileView", JSON.stringify(true));
+        hashParams.set("config.disableSelfView", JSON.stringify(true));
+        hashParams.set("config.startSilent", JSON.stringify(true));
+        hashParams.set("config.requireDisplayName", JSON.stringify(false));
+        hashParams.set("config.disableProfile", JSON.stringify(true));
+        hashParams.set("config.disableShortcuts", JSON.stringify(true));
+        hashParams.set("config.channelLastN", "1");           // paling penting!
+        hashParams.set("config.startVideoMuted", "10");       // semua mulai muted
+        hashParams.set("config.startAudioMuted", "10");
+        hashParams.set("config.disableAudioLevels", JSON.stringify(true));
         // hashParams.set("config.startWithAudioMuted", JSON.stringify(!AUDIO_ENABLE));  // false
         // hashParams.set("config.startWithVideoMuted", JSON.stringify(!VIDEO_ENABLE));  // false
 
