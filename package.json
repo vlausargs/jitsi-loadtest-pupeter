@@ -3,7 +3,11 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "release": "git tag -a v${npm_package_version} -m \"Release v${npm_package_version}\" && git push origin --follow-tags",
+    "release:major": "npm version major && git push origin --follow-tags",
+    "release:minor": "npm version minor && git push origin --follow-tags",
+    "release:patch": "npm version patch && git push origin --follow-tags"
   },
   "author": "",
   "license": "ISC",
