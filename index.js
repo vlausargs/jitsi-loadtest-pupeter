@@ -1,337 +1,338 @@
-const { Cluster } = require('puppeteer-cluster');
-const puppeteer = require('puppeteer');
-const crypto = require('crypto');
-const fs = require('fs');
+const { Cluster } = require("puppeteer-cluster");
+const puppeteer = require("puppeteer");
+const crypto = require("crypto");
+const fs = require("fs");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
-const os = require('os');
+const os = require("os");
 
 const hostname = os.hostname();
 
-const ROOM_CODE = process.env.ROOM_CODE || "testingloadtest002"
+const ROOM_CODE = process.env.ROOM_CODE || "testingloadtest002";
 const JOIN_URL = process.env.JOIN_URL || "https://meet.datanusantara.com";
-const HEADLESS = (process.env.HEADLESS || 'true').toLowerCase() !== 'false'; // default true
+const HEADLESS = (process.env.HEADLESS || "true").toLowerCase() !== "false"; // default true
 
-const JITSI_TEST_SERVER_NAME = process.env.JITSI_TEST_SERVER_NAME || '';
-const NAME_PREFIX = process.env.NAME_PREFIX || 'loadtest';
+const JITSI_TEST_SERVER_NAME = process.env.JITSI_TEST_SERVER_NAME || "";
+const NAME_PREFIX = process.env.NAME_PREFIX || "loadtest";
 
-const TOTAL_USERS = parseInt(process.env.TOTAL_USERS || '5', 10);
-const CONCURRENCY = parseInt(process.env.CONCURRENCY || '5', 10);
-const STAY_SECONDS = parseInt(process.env.STAY_SECONDS || '120', 10);
+const TOTAL_USERS = parseInt(process.env.TOTAL_USERS || "5", 10);
+const CONCURRENCY = parseInt(process.env.CONCURRENCY || "5", 10);
+const STAY_SECONDS = parseInt(process.env.STAY_SECONDS || "120", 10);
 const VIDEO_ENABLE = process.env.VIDEO_ENABLE || false;
-const VIDEO_PATH_Y4M = process.env.VIDEO_PATH_Y4M || 'dirgahayu80.y4m';
+const VIDEO_PATH_Y4M = process.env.VIDEO_PATH_Y4M || "dirgahayu80.y4m";
 
 const AUDIO_ENABLE = process.env.AUDIO_ENABLE || false;
-const AUDIO_PATH = process.env.AUDIO_PATH || 'test_audio.wav';
+const AUDIO_PATH = process.env.AUDIO_PATH || "test_audio.wav";
 
-const RETRY_LIMIT = parseInt(process.env.RETRY_LIMIT || '2', 10);
+const RETRY_LIMIT = parseInt(process.env.RETRY_LIMIT || "2", 10);
 const PER_TASK_TIMEOUT_MS = (STAY_SECONDS + 140) * 1000; // a bit over stay time
-const NAV_TIMEOUT_MS = parseInt(process.env.NAV_TIMEOUT_MS || '60000', 10);
-const SEL_TIMEOUT_MS = parseInt(process.env.SEL_TIMEOUT_MS || '30000', 10);
+const NAV_TIMEOUT_MS = parseInt(process.env.NAV_TIMEOUT_MS || "60000", 10);
+const SEL_TIMEOUT_MS = parseInt(process.env.SEL_TIMEOUT_MS || "30000", 10);
+const CHANNEL_LAST_N = parseInt(process.env.CHANNEL_LAST_N || "0", 10);
 
 // batas waktu maksimal satu sesi main()
 const MAIN_HARD_LIMIT_MS = (STAY_SECONDS + 30) * 1000;
 
 // delay antar cluster (default 5 detik)
-const CLUSTER_RESTART_DELAY_MS = parseInt(process.env.CLUSTER_RESTART_DELAY_MS || '5000', 10);
+const CLUSTER_RESTART_DELAY_MS = parseInt(process.env.CLUSTER_RESTART_DELAY_MS || "5000", 10);
 
 const sessionID = process.env.SESSION_ID || crypto.randomUUID().split("-").pop();
 
-function generateJWT(
-    roomCode,
-    username,
-) {
-    const appSecret = process.env.APP_SECRET;
-    const appId = process.env.APP_ID;
-    const jitsiSub = process.env.JITSI_SUB;
-    const now = Math.floor(Date.now() / 1000);
-    const tokenUuid = crypto.randomUUID()
+function generateJWT(roomCode, username) {
+  const appSecret = process.env.APP_SECRET;
+  const appId = process.env.APP_ID;
+  const jitsiSub = process.env.JITSI_SUB;
+  const now = Math.floor(Date.now() / 1000);
+  const tokenUuid = crypto.randomUUID();
 
-    // Build user object with fallback to room settings if user settings are not provided
-    const userContext = {
-        id: tokenUuid,
-        user: {
-            id: tokenUuid,
-            username: username,
-            name: username,
-            affiliation: "member",
-            lobby_bypass: true
-        },
-        room: {
-            lobby_autostart: true,
-        },
-        features: {
-            recording: "true",
-            livestreaming: "true",
-            "screen-sharing": "true"
-        },
-    };
+  // Build user object with fallback to room settings if user settings are not provided
+  const userContext = {
+    id: tokenUuid,
+    user: {
+      id: tokenUuid,
+      username: username,
+      name: username,
+      affiliation: "member",
+      lobby_bypass: true,
+    },
+    room: {
+      lobby_autostart: true,
+    },
+    features: {
+      recording: "true",
+      livestreaming: "true",
+      "screen-sharing": "true",
+    },
+  };
 
-    const payload = {
-        aud: "jitsi",
-        iss: appId,
-        sub: jitsiSub,
-        room: roomCode,
-        exp: now + 3600,
-        context: userContext,
-    };
+  const payload = {
+    aud: "jitsi",
+    iss: appId,
+    sub: jitsiSub,
+    room: roomCode,
+    exp: now + 3600,
+    context: userContext,
+  };
 
-    return jwt.sign(payload, appSecret);
+  return jwt.sign(payload, appSecret);
 }
 
 function resolveChromiumExecutable() {
-    if (process.env.PUPPETEER_EXECUTABLE_PATH) {
-        return process.env.PUPPETEER_EXECUTABLE_PATH;
-    }
-    const candidates = [
-        '/usr/bin/chromium-browser',
-        '/usr/bin/chromium',
-        '/snap/bin/chromium'
-    ];
-    for (const c of candidates) {
-        if (fs.existsSync(c)) return c;
-    }
-    // Fallback: let Puppeteer use its default (downloaded) binary
-    return undefined;
+  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+    return process.env.PUPPETEER_EXECUTABLE_PATH;
+  }
+  const candidates = ["/usr/bin/chromium-browser", "/usr/bin/chromium", "/snap/bin/chromium"];
+  for (const c of candidates) {
+    if (fs.existsSync(c)) return c;
+  }
+  // Fallback: let Puppeteer use its default (downloaded) binary
+  return undefined;
 }
 
 function sleep(ms) {
-    return new Promise(r => setTimeout(r, ms));
+  return new Promise((r) => setTimeout(r, ms));
 }
 async function retry(fn, retries = 3, delayMs = 5000, timeoutMs = null) {
-    let lastError;
-    const startTime = Date.now();
+  let lastError;
+  const startTime = Date.now();
 
-    for (let i = 0; i <= retries; i++) {
-        try {
-            return await fn();
-        } catch (err) {
-            lastError = err;
+  for (let i = 0; i <= retries; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastError = err;
 
-            const elapsed = Date.now() - startTime;
-            if (timeoutMs && elapsed >= timeoutMs) {
-                console.warn(`[RETRY] Total timeout reached (${timeoutMs}ms), giving up.`);
-                break;
-            }
+      const elapsed = Date.now() - startTime;
+      if (timeoutMs && elapsed >= timeoutMs) {
+        console.warn(`[RETRY] Total timeout reached (${timeoutMs}ms), giving up.`);
+        break;
+      }
 
-            if (i < retries) {
-                const waitTime = delayMs;
-                console.log(`[RETRY ${i + 1}/${retries}] Video enable failed, retrying in ${waitTime / 1000}s...`);
-                await sleep(waitTime);
-            }
-        }
+      if (i < retries) {
+        const waitTime = delayMs;
+        console.log(`[RETRY ${i + 1}/${retries}] Video enable failed, retrying in ${waitTime / 1000}s...`);
+        await sleep(waitTime);
+      }
     }
-    throw lastError; // re-throw last error if all failed
+  }
+  throw lastError; // re-throw last error if all failed
 }
 const EXECUTABLE_PATH = resolveChromiumExecutable();
-console.log('Using Chromium executable:', EXECUTABLE_PATH || '(Puppeteer default)');
+console.log("Using Chromium executable:", EXECUTABLE_PATH || "(Puppeteer default)");
 
 const PUPPETEER_ARGS = [
-    '--no-sandbox',
-    '--disable-setuid-sandbox',
-    '--disable-dev-shm-usage',
-    '--disable-extensions',
-    '--disable-gpu',
-    '--no-zygote',
-    '--disable-background-timer-throttling',
-    '--disable-renderer-backgrounding',
-    '--disable-backgrounding-occluded-windows',
+  "--no-sandbox",
+  "--disable-setuid-sandbox",
+  "--disable-dev-shm-usage",
+  "--disable-extensions",
+  "--disable-gpu",
+  "--no-zygote",
+  "--disable-background-timer-throttling",
+  "--disable-renderer-backgrounding",
+  "--disable-backgrounding-occluded-windows",
 
-    // media simulation
-    '--use-fake-ui-for-media-stream',
-    '--use-fake-device-for-media-stream',
-    VIDEO_ENABLE ? `--use-file-for-fake-video-capture=${VIDEO_PATH_Y4M}` : null,
-    AUDIO_ENABLE ? `--use-file-for-fake-audio-capture=${AUDIO_PATH}` : null,
+  // media simulation
+  "--use-fake-ui-for-media-stream",
+  "--use-fake-device-for-media-stream",
+  VIDEO_ENABLE ? `--use-file-for-fake-video-capture=${VIDEO_PATH_Y4M}` : null,
+  AUDIO_ENABLE ? `--use-file-for-fake-audio-capture=${AUDIO_PATH}` : null,
 
-    '--webrtc-video-max-bitrate=10000000',
-    '--webrtc-video-min-bitrate=3000000',
-    '--webrtc-video-initial-bitrate=5000000',
-    '--webrtc-max-cpu-consumption-percentage=100',
-    '--force-webrtc-ip-handling-policy=default_public_interface_only',
+  "--webrtc-video-max-bitrate=10000000",
+  "--webrtc-video-min-bitrate=3000000",
+  "--webrtc-video-initial-bitrate=5000000",
+  "--webrtc-max-cpu-consumption-percentage=100",
+  "--force-webrtc-ip-handling-policy=default_public_interface_only",
 
-    '--autoplay-policy=no-user-gesture-required',
-    '--mute-audio',
-    '--lang=en-US',
-    '--window-size=800,600',
-    '--js-flags=--max-old-space-size=128'
+  "--autoplay-policy=no-user-gesture-required",
+  "--mute-audio",
+  "--lang=en-US",
+  "--window-size=800,600",
+  "--js-flags=--max-old-space-size=128",
 ].filter(Boolean);
 
 const main = async () => {
-    console.log('=== Starting new cluster session ===');
-    console.log(`STAY_SECONDS=${STAY_SECONDS}, MAIN_HARD_LIMIT_MS=${MAIN_HARD_LIMIT_MS}`);
+  console.log("=== Starting new cluster session ===");
+  console.log(`STAY_SECONDS=${STAY_SECONDS}, MAIN_HARD_LIMIT_MS=${MAIN_HARD_LIMIT_MS}`);
 
-    const cluster = await Cluster.launch({
-        puppeteer,
-        concurrency: Cluster.CONCURRENCY_CONTEXT, // memory-friendly
-        maxConcurrency: CONCURRENCY,
-        retryLimit: RETRY_LIMIT,
-        retryDelay: 2000,
-        timeout: PER_TASK_TIMEOUT_MS,
-        monitor: true,
-        puppeteerOptions: {
-            headless: HEADLESS ? 'new' : false,
-            executablePath: EXECUTABLE_PATH, // now using Chromium
-            args: PUPPETEER_ARGS,
-            defaultViewport: { width: 800, height: 600 }
-        }
+  const cluster = await Cluster.launch({
+    puppeteer,
+    concurrency: Cluster.CONCURRENCY_CONTEXT, // memory-friendly
+    maxConcurrency: CONCURRENCY,
+    retryLimit: RETRY_LIMIT,
+    retryDelay: 2000,
+    timeout: PER_TASK_TIMEOUT_MS,
+    monitor: true,
+    puppeteerOptions: {
+      headless: HEADLESS ? "new" : false,
+      executablePath: EXECUTABLE_PATH, // now using Chromium
+      args: PUPPETEER_ARGS,
+      defaultViewport: { width: 800, height: 600 },
+    },
+  });
+
+  // definisikan task
+  await cluster.task(async ({ page, data: { idx, name, joinUrl } }) => {
+    page.setDefaultTimeout(SEL_TIMEOUT_MS);
+    page.setDefaultNavigationTimeout(NAV_TIMEOUT_MS);
+
+    page.on("pageerror", (err) => {
+      console.error("[PAGEERROR]:", err.message || err);
     });
 
-    // definisikan task
-    await cluster.task(async ({ page, data: { idx, name, joinUrl } }) => {
-        page.setDefaultTimeout(SEL_TIMEOUT_MS);
-        page.setDefaultNavigationTimeout(NAV_TIMEOUT_MS);
+    page.on("console", (msg) => {
+      // tipe: log / warn / error / debug / info
+      const type = msg.type();
+      const text = msg.text();
+      // console.log(`[BROWSER CONSOLE][${type}] ${text}`);
 
-        page.on('pageerror', err => {
-            console.error('[PAGEERROR]:', err.message || err);
-        });
-
-        page.on('console', msg => {
-            // tipe: log / warn / error / debug / info
-            const type = msg.type();
-            const text = msg.text();
-            // console.log(`[BROWSER CONSOLE][${type}] ${text}`);
-
-            // Kalau mau hanya error:
-            if (type === 'error') {
-                console.error('[DETECTED CONSOLE ERROR]:', text);
-            }
-        });
-
-        await page.emulateMediaFeatures([
-            { name: 'prefers-reduced-motion', value: 'reduce' }
-        ]).catch(() => { });
-
-        const realUA = await page.evaluate(() => navigator.userAgent).catch(() => null);
-        if (realUA) {
-            await page.setUserAgent(
-                `${realUA} jitsi-LoadTest/${Math.random().toString(36).slice(2, 8)}`
-            );
-        }
-
-        await page.setCacheEnabled(false).catch(() => { });
-
-        await page.goto(joinUrl, { waitUntil: 'domcontentloaded' });
-
-        if (VIDEO_ENABLE) {
-            try {
-                let intervalId = setInterval(async () => {
-                    let clicked = true;
-
-                    await page.waitForSelector('[aria-label="Start camera"]', { timeout: 5000 }).catch(() => { clicked = false });
-                    await page.click('[aria-label="Start camera"]').catch(() => { clicked = false });
-                    if (!clicked) {
-                        await page.waitForSelector('[aria-label="Hidupkan kamera"]', { timeout: 5000 }).catch(() => { clicked = false });
-                        await page.click('[aria-label="Hidupkan kamera"]').catch(() => { clicked = false });
-                    }
-                    if (clicked)
-                        clearInterval(intervalId);
-                }, 5000);
-
-                setTimeout(() => {
-                    clearInterval(intervalId);
-                    console.log("2 minutes timeout reached — stopped camera button clicking");
-                }, 120000);
-
-            } catch (error) {
-
-            }
-        }
-
-        if (AUDIO_ENABLE) {
-
-            let intervalIDMic = setInterval(async () => {
-                let clicked = true;
-
-                await page.waitForSelector('[aria-label="Unmute microphone"]', { timeout: 5000 }).catch(() => { clicked = false });
-                await page.click('[aria-label="Unmute microphone"]').catch(() => { clicked = false });
-                if (!clicked) {
-                    await page.waitForSelector('[aria-label="Bisukan mikrofon"]', { timeout: 5000 }).catch(() => { clicked = false });
-                    await page.click('[aria-label="Bisukan mikrofon"]').catch(() => { clicked = false });
-                }
-            }, 5000);
-
-            setTimeout(() => {
-                clearInterval(intervalIDMic);
-                console.log("2 minutes timeout reached — stopped mic button clicking");
-            }, 120000);
-        }
-
-        // stay in room
-        await sleep(STAY_SECONDS * 1000);
+      // Kalau mau hanya error:
+      if (type === "error") {
+        console.error("[DETECTED CONSOLE ERROR]:", text);
+      }
     });
 
-    console.log(`Queuing ${TOTAL_USERS} users with concurrency ${CONCURRENCY}...`);
-    for (let i = 0; i < TOTAL_USERS; i++) {
-        const name = `${hostname}_${sessionID}_${NAME_PREFIX}_${i.toString().padStart(4, '0')}`;
-        const token = generateJWT(ROOM_CODE, name)
-        const newURL = new URL(`${JOIN_URL}/${ROOM_CODE}`);
-        newURL.searchParams.append("jwt", token);
+    await page.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "reduce" }]).catch(() => {});
 
-        // Add the fragment (hash) part
-        // Properly encode the hash/fragment parameters
-        const hashParams = new URLSearchParams();
-        hashParams.set("userInfo.displayName", JSON.stringify(name));
-        hashParams.set("config.prejoinConfig.enabled", JSON.stringify(false));  // false
-        hashParams.set("config.notifications", JSON.stringify([]));  // []
-        hashParams.set("config.channelLastN", JSON.stringify(0))
-        // hashParams.set("config.startWithAudioMuted", JSON.stringify(!AUDIO_ENABLE));  // false
-        // hashParams.set("config.startWithVideoMuted", JSON.stringify(!VIDEO_ENABLE));  // false
-
-        newURL.hash = hashParams.toString();
-
-        console.log(newURL.toString())
-        cluster.queue({ idx: i, name, joinUrl: newURL.toString() });
-        if (((i + 1) % 5) == 0 && i < TOTAL_USERS - 1) {
-            await sleep(15000);
-        }
+    const realUA = await page.evaluate(() => navigator.userAgent).catch(() => null);
+    if (realUA) {
+      await page.setUserAgent(`${realUA} jitsi-LoadTest/${Math.random().toString(36).slice(2, 8)}`);
     }
 
-    // Promise normal: tunggu semua task selesai, lalu close cluster
-    const runPromise = (async () => {
-        try {
-            console.log('Waiting for cluster to become idle...');
-            await cluster.idle();
-        } catch (err) {
-            console.error('cluster.idle() error:', err.message || err);
-        }
-        try {
-            await cluster.close();
-        } catch (err) {
-            console.error('cluster.close() error (runPromise):', err.message || err);
-        }
-        console.log('Cluster closed (normal path).');
-    })();
+    await page.setCacheEnabled(false).catch(() => {});
 
-    // Promise timeout: kalau lewat MAIN_HARD_LIMIT_MS, paksa close cluster
-    const timeoutPromise = (async () => {
-        await sleep(MAIN_HARD_LIMIT_MS);
-        console.error(`HARD TIMEOUT hit: ${MAIN_HARD_LIMIT_MS} ms. Forcing cluster.close()...`);
-        try {
-            await cluster.close();
-        } catch (err) {
-            console.error('cluster.close() error (timeoutPromise):', err.message || err);
+    await page.goto(joinUrl, { waitUntil: "domcontentloaded" });
+
+    if (VIDEO_ENABLE) {
+      try {
+        let intervalId = setInterval(async () => {
+          let clicked = true;
+
+          await page.waitForSelector('[aria-label="Start camera"]', { timeout: 5000 }).catch(() => {
+            clicked = false;
+          });
+          await page.click('[aria-label="Start camera"]').catch(() => {
+            clicked = false;
+          });
+          if (!clicked) {
+            await page.waitForSelector('[aria-label="Hidupkan kamera"]', { timeout: 5000 }).catch(() => {
+              clicked = false;
+            });
+            await page.click('[aria-label="Hidupkan kamera"]').catch(() => {
+              clicked = false;
+            });
+          }
+          if (clicked) clearInterval(intervalId);
+        }, 5000);
+
+        setTimeout(() => {
+          clearInterval(intervalId);
+          console.log("2 minutes timeout reached — stopped camera button clicking");
+        }, 120000);
+      } catch (error) {}
+    }
+
+    if (AUDIO_ENABLE) {
+      let intervalIDMic = setInterval(async () => {
+        let clicked = true;
+
+        await page.waitForSelector('[aria-label="Unmute microphone"]', { timeout: 5000 }).catch(() => {
+          clicked = false;
+        });
+        await page.click('[aria-label="Unmute microphone"]').catch(() => {
+          clicked = false;
+        });
+        if (!clicked) {
+          await page.waitForSelector('[aria-label="Bisukan mikrofon"]', { timeout: 5000 }).catch(() => {
+            clicked = false;
+          });
+          await page.click('[aria-label="Bisukan mikrofon"]').catch(() => {
+            clicked = false;
+          });
         }
-        console.log('Cluster closed (hard-timeout path).');
-    })();
+      }, 5000);
 
-    // siapa yang selesai duluan, itu yang menentukan akhir main()
-    await Promise.race([runPromise, timeoutPromise]);
+      setTimeout(() => {
+        clearInterval(intervalIDMic);
+        console.log("2 minutes timeout reached — stopped mic button clicking");
+      }, 120000);
+    }
 
-    console.log('=== Cluster session complete (main() finished) ===');
+    // stay in room
+    await sleep(STAY_SECONDS * 1000);
+  });
+
+  console.log(`Queuing ${TOTAL_USERS} users with concurrency ${CONCURRENCY}...`);
+  for (let i = 0; i < TOTAL_USERS; i++) {
+    const name = `${hostname}_${sessionID}_${NAME_PREFIX}_${i.toString().padStart(4, "0")}`;
+    const token = generateJWT(ROOM_CODE, name);
+    const newURL = new URL(`${JOIN_URL}/${ROOM_CODE}`);
+    newURL.searchParams.append("jwt", token);
+
+    // Add the fragment (hash) part
+    // Properly encode the hash/fragment parameters
+    const hashParams = new URLSearchParams();
+    hashParams.set("userInfo.displayName", JSON.stringify(name));
+    hashParams.set("config.prejoinConfig.enabled", JSON.stringify(false)); // false
+    hashParams.set("config.notifications", JSON.stringify([])); // []
+    hashParams.set("config.channelLastN", JSON.stringify(CHANNEL_LAST_N));
+    // hashParams.set("config.startWithAudioMuted", JSON.stringify(!AUDIO_ENABLE));  // false
+    // hashParams.set("config.startWithVideoMuted", JSON.stringify(!VIDEO_ENABLE));  // false
+
+    newURL.hash = hashParams.toString();
+
+    console.log(newURL.toString());
+    cluster.queue({ idx: i, name, joinUrl: newURL.toString() });
+    if ((i + 1) % 5 == 0 && i < TOTAL_USERS - 1) {
+      await sleep(15000);
+    }
+  }
+
+  // Promise normal: tunggu semua task selesai, lalu close cluster
+  const runPromise = (async () => {
+    try {
+      console.log("Waiting for cluster to become idle...");
+      await cluster.idle();
+    } catch (err) {
+      console.error("cluster.idle() error:", err.message || err);
+    }
+    try {
+      await cluster.close();
+    } catch (err) {
+      console.error("cluster.close() error (runPromise):", err.message || err);
+    }
+    console.log("Cluster closed (normal path).");
+  })();
+
+  // Promise timeout: kalau lewat MAIN_HARD_LIMIT_MS, paksa close cluster
+  const timeoutPromise = (async () => {
+    await sleep(MAIN_HARD_LIMIT_MS);
+    console.error(`HARD TIMEOUT hit: ${MAIN_HARD_LIMIT_MS} ms. Forcing cluster.close()...`);
+    try {
+      await cluster.close();
+    } catch (err) {
+      console.error("cluster.close() error (timeoutPromise):", err.message || err);
+    }
+    console.log("Cluster closed (hard-timeout path).");
+  })();
+
+  // siapa yang selesai duluan, itu yang menentukan akhir main()
+  await Promise.race([runPromise, timeoutPromise]);
+
+  console.log("=== Cluster session complete (main() finished) ===");
 };
 
 // loop: hidupkan cluster, matikan, tunggu delay, ulang lagi
 (async () => {
-    while (true) {
-        console.log("AUDIO_ENABLE ", AUDIO_ENABLE)
-        console.log("VIDEO_ENABLE ", VIDEO_ENABLE)
-        try {
-            await main();
-        } catch (err) {
-            console.error('Error in main():', err.message || err);
-        }
-
-        console.log(`Waiting ${CLUSTER_RESTART_DELAY_MS / 1000} seconds before recreating cluster...`);
-        await sleep(CLUSTER_RESTART_DELAY_MS);
+  while (true) {
+    console.log("AUDIO_ENABLE ", AUDIO_ENABLE);
+    console.log("VIDEO_ENABLE ", VIDEO_ENABLE);
+    try {
+      await main();
+    } catch (err) {
+      console.error("Error in main():", err.message || err);
     }
+
+    console.log(`Waiting ${CLUSTER_RESTART_DELAY_MS / 1000} seconds before recreating cluster...`);
+    await sleep(CLUSTER_RESTART_DELAY_MS);
+  }
 })();
